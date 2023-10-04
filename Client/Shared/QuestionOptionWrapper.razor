@@ -1,0 +1,61 @@
+﻿@* @using SurveyPulse.Shared;
+
+
+<div class="d-flex mt-1 justify-content-center">
+    <div class="align-self-center">
+        <SfRadioButton Name="@question.QuestionId.ToString()" Value="@option.QuestionOptionId.ToString()" TChecked="long" @onchange="CorrectOptionSelected" />
+    </div>
+    <SfTextBox @bind-Value="option.OptionText" ID="@option.QuestionOptionId.ToString()" CssClass="mx-1" Placeholder="Add an option" ValueChange="((ChangedEventArgs args)=> TextBoxChangeEvent( args, option.QuestionOptionId))"></SfTextBox>
+    <SfButton OnClick="(()=>RemoveQuestionOption(question, option.QuestionOptionId))" CssClass="e-small mx-1 e-outline e-danger"><i class="fa-solid fa-x"></i></SfButton>
+</div>
+
+@code {
+    [CascadingParameter]
+    public Survey NewSurvey { get; set; }
+    [CascadingParameter]
+    public Question question { get; set; }
+    [Parameter]
+    public long OptionId { get; set; }
+
+    public QuestionOption option;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        option = NewSurvey.Questions.SelectMany(question => question.QuestionOptions).Where(e1 => e1.QuestionOptionId == OptionId).FirstOrDefault();
+    }
+    private void CorrectOptionSelected(Microsoft.AspNetCore.Components.ChangeEventArgs args)
+    {
+        var correctOptionId = Convert.ToInt64(args.Value);
+
+        foreach (var option in NewSurvey.Questions.SelectMany(question => question.QuestionOptions))
+        {
+            if (option.QuestionOptionId == correctOptionId)
+                option.IsCorrectOption = true;
+        }
+    }
+    private void AddQuestionOption(Question question)
+    {
+        if (question is not null && question.QuestionOptions.Count != 5)
+        {
+            question.QuestionOptions.Add(new QuestionOption());
+        }
+    }
+    private void RemoveQuestionOption(Question question, long QuestionOptionId)
+    {
+        var questionOption = question.QuestionOptions.Where(e1 => e1.QuestionOptionId == QuestionOptionId).First();
+        if (questionOption is not null)
+            question.QuestionOptions.Remove(questionOption);
+        if (question.QuestionOptions.Count == 1)
+            question.QuestionOptions.Add(new QuestionOption());
+        StateHasChanged();
+    }
+    public void TextBoxChangeEvent(ChangedEventArgs args, long questionOptionId)
+    {
+        foreach (var option in NewSurvey.Questions.SelectMany(question => question.QuestionOptions))
+        {
+            if (option.QuestionOptionId == questionOptionId)
+                option.OptionText = args.Value;
+        }
+    }
+}
+ *@

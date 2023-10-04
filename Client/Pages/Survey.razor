@@ -1,0 +1,18 @@
+﻿@page "/survey"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+
+<Syncfusion.Blazor.Cards.SfCard CssClass="container mt-3">
+    <SfGrid DataSource="@Surveys" AllowPaging="true" AllowFiltering="true">
+        <GridPageSettings PageSize="5"></GridPageSettings>
+        <GridColumns>
+            <GridColumn Field="@nameof(SurveyPulse.Shared.Survey.SurveyId)" HeaderText="ID" Width="50"></GridColumn>
+            <GridColumn Field="@nameof(SurveyPulse.Shared.Survey.Owner)" HeaderText="Owner"></GridColumn>
+            <GridColumn Field="@nameof(SurveyPulse.Shared.Survey.Category)" HeaderText="Category"></GridColumn>
+            <GridColumn Field="@nameof(SurveyPulse.Shared.Survey.Type)" HeaderText="Type"></GridColumn>
+            <GridColumn Field="@nameof(SurveyPulse.Shared.Survey.IsActive)" HeaderText="Is Active"></GridColumn>
+            <GridColumn Field="@nameof(SurveyPulse.Shared.Survey.IsConfirmed)" HeaderText=" Is Confirmed"></GridColumn>
+        </GridColumns>
+    </SfGrid>
+</Syncfusion.Blazor.Cards.SfCard>

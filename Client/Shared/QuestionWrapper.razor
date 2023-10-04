@@ -1,0 +1,146 @@
+﻿@* @using SurveyPulse.Shared;
+<div class="d-flex">
+    <div class="m-2" align="right">
+        <Syncfusion.Blazor.Buttons.SfButton OnClick="(()=>RemoveQuestion(question.QuestionId))" CssClass="e-danger e-small ">R</Syncfusion.Blazor.Buttons.SfButton>
+        <Syncfusion.Blazor.Buttons.SfButton OnClick="(() => MoveArg(question,-1))" CssClass=" e-small e-outline mt-1">U</Syncfusion.Blazor.Buttons.SfButton>
+        <Syncfusion.Blazor.Buttons.SfButton OnClick="(() => MoveArg(question,1))" CssClass=" e-small e-outline mt-1">D</Syncfusion.Blazor.Buttons.SfButton>
+    </div>
+    <div class="col-11 mt-2">
+        <p>@question.Order.ToString()</p>
+        <SfCard ID="Card">
+            <CardHeader>
+                <SfDropDownList TValue="string" Placeholder="Select a question" TItem="PapaModel" DataSource="@PAPA">
+                    <DropDownListFieldSettings Value="Name"></DropDownListFieldSettings>
+                </SfDropDownList>
+            </CardHeader>
+            <CardContent>
+                @foreach (var option in question.QuestionOptions.OrderBy(e1 => e1.Order))
+                {
+                    <div class="d-flex mt-1 justify-content-center">
+                        <div class="align-self-center">
+                            <SfRadioButton @ref="@sfbutton" Name="@question.QuestionId.ToString()" Value="@option.QuestionOptionId.ToString()" TChecked="long" @onchange="onChange" />
+                        </div>
+                        <SfTextBox ID="@option.QuestionOptionId.ToString()" CssClass="mx-1" Placeholder="Add an option" ValueChange="((ChangedEventArgs args)=> TextBoxChangeEvent( args, option.QuestionOptionId))"></SfTextBox>
+                        <SfButton OnClick="(()=>RemoveQuestionOption(question.QuestionId, option.QuestionOptionId))" CssClass="e-small mx-1 e-outline e-danger"><i class="fa-solid fa-x"></i></SfButton>
+                    </div>
+                }
+                <div class="m-2 d-flex justify-content-center ">
+                    <SfButton OnClick="(()=>AddQuestionOption(question.QuestionId))" CssClass="e-round e-primary" IconCss="e-icons e-plus-icon"><i class="fa-solid fa-plus"></i></SfButton>
+                </div>
+
+            </CardContent>
+        </SfCard>
+    </div>
+</div>
+@code {
+    [CascadingParameter]
+    public Survey NewSurvey { get; set; }  
+    [Parameter]
+    public long QuestionId { get; set; }
+
+    public Question question { get; set; }
+    private SfRadioButton<long> sfbutton;
+    private string css = "e-small mx-1 e-outline e-danger";
+    private List<PapaModel> PAPA;//
+    private void MoveArg(Question question, int moveDirection)
+    {
+        var args = new List<Question>(NewSurvey.Questions.OrderBy(e1 => e1.Order));
+        switch (moveDirection)
+        {
+            case int.MinValue:
+                {
+                    args.Remove(question);
+                    args.Insert(0, question);
+                }
+                break;
+            case -1:
+                {
+                    var oldIndex = args.IndexOf(question);
+                    if (oldIndex == 0) return;
+                    args.Remove(question);
+                    args.Insert(--oldIndex, question);
+                }
+                break;
+            case 1:
+                {
+                    var oldIndex = args.IndexOf(question);
+                    if (oldIndex == args.Count - 1) return;
+                    args.Remove(question);
+                    args.Insert(++oldIndex, question);
+                }
+                break;
+            case int.MaxValue:
+                {
+                    args.Remove(question);
+                    args.Add(question);
+                }
+                break;
+        }
+        moveDirection = 1;
+        foreach (var item in args)
+        {
+            NewSurvey.Questions.First(e1 => e1 == item).Order = moveDirection++;
+        }
+        StateHasChanged();
+    }
+
+    public void TextBoxChangeEvent(ChangedEventArgs args, long questionOptionId)
+    {
+        foreach (var option in NewSurvey.Questions.SelectMany(question => question.QuestionOptions))
+        {
+            if (option.QuestionOptionId == questionOptionId)
+                option.OptionText = args.Value;
+        }
+    }
+
+    private void onChange(Microsoft.AspNetCore.Components.ChangeEventArgs args)
+    {
+        var correctOptionId = Convert.ToInt64(args.Value);
+
+        foreach (var option in NewSurvey.Questions.SelectMany(question => question.QuestionOptions))
+        {
+            if (option.QuestionOptionId == correctOptionId)
+                option.IsCorrectOption = true;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        //uestion = await service.GetQuestion(QuestionId)
+        question = NewSurvey.Questions.Where(e1 => e1.QuestionId == QuestionId).First();
+    
+    }
+
+    private void RemoveQuestion(long id)
+    {
+        var question = NewSurvey.Questions.Where(e1 => e1.QuestionId == id).First();
+        NewSurvey.Questions.Remove(question);
+    }
+    private void AddQuestionOption(long questionId)
+    {
+        var question = NewSurvey.Questions.Where(e1 => e1.QuestionId == questionId).First();
+        if (question.QuestionOptions.Count != 5)
+        {
+            question.QuestionOptions.Add(new QuestionOption());
+        }
+    }
+    private void RemoveQuestionOption(long questionId, long QuestionOptionId)
+    {
+        var question = NewSurvey.Questions.Where(e1 => e1.QuestionId == questionId).First();
+        var qOption = question.QuestionOptions.Where(e1 => e1.QuestionOptionId == QuestionOptionId).First();
+        question.QuestionOptions.Remove(qOption);
+    }
+
+    public class PapaModel
+    {
+        public long Id = DateTime.Now.Ticks;
+        public string Name { get; set; }
+        public ICollection<Option> Options;
+    }
+    public class Option
+    {
+        public long Id = DateTime.Now.Ticks;
+        public string Text { get; set; }
+    }
+}
+ *@

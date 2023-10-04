@@ -1,17 +1,48 @@
-﻿@inherits LayoutComponentBase
-
+﻿@* @inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject Blazored.Toast.Services.IToastService _ToastService
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    <AuthorizeView>
+        <Authorized>
+            <div class="sidebar">
 
+                <NavMenu />
+
+            </div>
+        </Authorized>
+    </AuthorizeView>
     <main>
+        <nav class="navbar bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="@homepage">SurveyPulse</a>
+            </div>
+        </nav>
         <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+            <LoginDisplay />
         </div>
+        <CascadingValue Value="_ToastService">
+            <article class="content px-4">
+                <Blazored.Toast.BlazoredToasts></Blazored.Toast.BlazoredToasts>
+                @Body
+            </article>
+        </CascadingValue>
 
-        <article class="content px-4">
-            @Body
-        </article>
     </main>
 </div>
+@code{
+    string homepage = "/";
+}
+ *@
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject Blazored.Toast.Services.IToastService _ToastService
+
+<NavMenu />
+
+<CascadingValue Value="_ToastService">
+    <Blazored.Toast.BlazoredToasts></Blazored.Toast.BlazoredToasts>
+    @Body
+</CascadingValue>
+@code {
+    string homepage = "/";
+}

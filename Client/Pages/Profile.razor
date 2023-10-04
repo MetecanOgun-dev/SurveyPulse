@@ -1,0 +1,41 @@
+﻿@page "/profile"
+@using Microsoft.AspNetCore.Authorization;
+@attribute [Authorize]
+
+<Syncfusion.Blazor.Cards.SfCard CssClass="container mt-3 p-5">
+    <Syncfusion.Blazor.Cards.CardHeader>
+        <h3>User Profile</h3>
+    </Syncfusion.Blazor.Cards.CardHeader>
+    <EditForm Model="_userUpdateModel">
+        <DataAnnotationsValidator />
+        <SfTextBox ID="UserId" @bind-Value="_userUpdateModel.UserId" style="display:none;"></SfTextBox>
+        <div class="form-group mt-2">
+            <label for="FirstName">First Name:</label>
+            <SfTextBox ID="FirstName" @bind-Value="_userUpdateModel.FirstName" ShowClearButton="true"></SfTextBox>
+            <ValidationMessage For="@(() => _userUpdateModel.FirstName)"></ValidationMessage>
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="LastName">Last Name:</label>
+            <SfTextBox ID="LastName" @bind-Value="_userUpdateModel.LastName" ShowClearButton="true"></SfTextBox>
+            <ValidationMessage For="@(() => _userUpdateModel.LastName)"></ValidationMessage>
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="Email">Email:</label>
+            <SfTextBox ID="email" @bind-Value="_userUpdateModel.Email" ShowClearButton="true"></SfTextBox>
+            <ValidationMessage For="@(() => _userUpdateModel.Email)"></ValidationMessage>
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="PhoneNumber">Phone Number:</label>
+            <SfTextBox ID="PhoneNumber" @bind-Value="_userUpdateModel.PhoneNumber" ShowClearButton="true"></SfTextBox>
+            <ValidationMessage For="@(() => _userUpdateModel.PhoneNumber)"></ValidationMessage>
+        </div>
+
+        <br />
+        <div class="form-group" align="right">
+            <SfButton @onclick="(() => SubmitForm(_userUpdateModel.UserId, _userUpdateModel))" Disabled="(!context.Validate())" CssClass="e-primary">Submit</SfButton>
+        </div>
+    </EditForm>
+</Syncfusion.Blazor.Cards.SfCard>

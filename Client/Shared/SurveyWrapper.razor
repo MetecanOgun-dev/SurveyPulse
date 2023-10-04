@@ -1,0 +1,597 @@
+﻿@using Microsoft.AspNetCore.Http;
+@using SurveyPulse.Client.Services.SurveyService;
+@using SurveyPulse.Service.Models;
+@using SurveyPulse.Service.Services.EmailService;
+@using SurveyPulse.Service.Services.EmailService.SystemMailGenerators;
+@using SurveyPulse.Shared;
+@using System.Text.RegularExpressions;
+
+
+
+@* <SfButton OnClick="OpenDialog">Create Survey</SfButton> *@
+
+<a href="#" @onclick="(()=>showSurveyDialog = true)" class="btn btn-primary" rel="noopener noreferrer">
+    Create a Survey
+</a>
+
+<Syncfusion.Blazor.Popups.SfDialog IsModal=true ShowCloseIcon @bind-Visible=@showSurveyDialog Height="80%" Width="80%">
+     <Syncfusion.Blazor.Popups.DialogTemplates>
+         <Header>
+             <span>New Survey</span>
+         </Header>
+         <Content>
+             <div class="container">
+                 <div class="row">
+                     <div class="col-sm">
+                         @if (isAuthenticated == false)
+                        {
+                            <p>@infoMessage</p>
+                        }
+                        @if (Questions != null && Questions.Count > 0)
+                            @foreach (var question in Questions.OrderBy(e1 => e1.Order))
+                            {
+                                if (question.QuestionId == Guid.Empty)
+                                {
+                                    question.QuestionId = Guid.NewGuid();
+                                }
+                                <div class="d-flex">
+                                    <div class="m-3" align="right">
+                                        <Syncfusion.Blazor.Buttons.SfButton OnClick="(()=>RemoveQuestion(question.QuestionId))" CssClass="e-danger e-small"><i class="fa-solid fa-trash"></i></Syncfusion.Blazor.Buttons.SfButton>
+                                        <Syncfusion.Blazor.Buttons.SfButton OnClick="(() => MoveArg(question, -1))" CssClass=" e-small e-outline mt-1"><i class="fa-solid fa-arrow-up"></i></Syncfusion.Blazor.Buttons.SfButton>
+                                        <Syncfusion.Blazor.Buttons.SfButton OnClick="(() => MoveArg(question, 1))" CssClass=" e-small e-outline mt-1"><i class="fa-solid fa-arrow-down"></i></Syncfusion.Blazor.Buttons.SfButton>
+                                    </div>
+                                    <div class="col-11 mt-2">
+
+                                        <SfCard>
+                                            <CardHeader>
+                                                <div class="col-12 d-flex justify-content-between">
+                                                    <p class="mb-0" style="font-weight:bold;">Question Order: @question.Order</p>
+
+                                                    <div class="d-flex">
+                                                        <SfCheckBox @bind-Checked="question.IsOptional" Label="Optional" LabelPosition="Syncfusion.Blazor.Buttons.LabelPosition.After"></SfCheckBox>
+                                                    </div>
+                                                </div>
+                                                <hr />
+                                            </CardHeader>
+                                            <CardHeader>
+                                                <SfDropDownList DataSource="@QuestionPool" TItem="Question" TValue="string" @bind-Value="@question.QuestionText" Placeholder="Select a question">
+                                                    <DropDownListFieldSettings Value="QuestionText" Text="QuestionText"></DropDownListFieldSettings>
+                                                    <DropDownListEvents TItem="Question" TValue="string"></DropDownListEvents>
+                                                </SfDropDownList>
+                                            </CardHeader>
+                                            <CardContent>
+                                                @foreach (var option in question.QuestionOptions)
+                                                {
+                                                    <div class="d-flex mt-1 justify-content-center">
+                                                        <div class="align-self-center">
+                                                            @{
+                                                                if (question.QuestionId == Guid.Empty)
+                                                                {
+                                                                    question.QuestionId = Guid.NewGuid();
+                                                                }
+                                                                string name = question.QuestionId.ToString();
+                                                                string val = option.QuestionOptionId.ToString();
+                                                                <SfRadioButton Name="@name" Value="@val" TChecked="Guid" @onchange="CorrectOptionSelected" />
+                                                            }
+                                                        </div>
+                                                        <SfTextBox ID="@option.QuestionOptionId.ToString()" @bind-Value="option.OptionText" CssClass="mx-1" Placeholder="Add an option"></SfTextBox>
+                                                        <SfButton OnClick="(()=>RemoveQuestionOption(question, option.QuestionOptionId))" CssClass="e-small mx-1 e-outline e-danger"><i class="fa-solid fa-x"></i></SfButton>
+                                                    </div>
+                                                }
+                                                <div class="m-2 d-flex justify-content-center ">
+                                                    @if (question.QuestionOptions.Count != 5)
+                                                    {
+                                                        <SfButton OnClick="(()=>AddQuestionOption(question))" CssClass="e-round e-outline e-small" HtmlAttributes="@(new Dictionary<string, object> { { "id", question.QuestionId }})"><i class="fa-solid fa-plus"></i></SfButton>
+                                                    }
+                                                </div>
+                                            </CardContent>
+                                        </SfCard>
+                                    </div>
+                                </div>
+                            }
+                        <div class="m-2 d-flex justify-content-center ">
+                            <SfButton OnClick="AddQuestion" CssClass="e-primary">Add Question</SfButton>
+                        </div>
+                    </div>
+                    <div class="col-sm">
+                        <SfCard>
+                            <CardHeader>
+                                Survey Details
+                            </CardHeader>
+                            <CardContent>
+                                <SfTextBox @bind-Value="NewSurveyDetail.Owner" CssClass="mt-3" Placeholder="Your Email"></SfTextBox>
+                                <SfTextBox @bind-Value="NewSurveyDetail.Title" CssClass="mt-3" Placeholder="Survey Title"></SfTextBox>
+                                <SfTextBox @bind-Value="NewSurveyDetail.Description" Multiline CssClass="mt-3" Placeholder="Survey Description"></SfTextBox>
+                                 <SfCheckBox @bind-Checked="NewSurveyDetail.DisplayRespondents" CssClass="mt-2" Label="Display Respondents"></SfCheckBox>
+                             </CardContent>
+                         </SfCard>
+                         <SfCard CssClass="mt-2">
+                             <CardHeader>
+                                 Share Survey
+                             </CardHeader>
+                             <CardContent>
+                                 <div class="mt-1">
+                                     @if (isAuthenticated)
+                                    {
+                                        <SfTextBox @bind-Value="@respondentEmail" CssClass="mt-2" Placeholder="Email"></SfTextBox>
+                                        <SfButton OnClick="AddRespondent" CssClass="e-small e-block e-primary mt-2">Add</SfButton>
+                                    }
+                                    @if (!isAuthenticated)
+                                    {
+                                        if (Respondents.Count != 5)
+                                        {
+                                            <SfTextBox @bind-Value="@respondentEmail" CssClass="mt-2" Placeholder="Email"></SfTextBox>
+                                            <SfButton OnClick="AddRespondent" CssClass="e-small e-block e-primary mt-2">Add</SfButton>
+                                        }
+                                        if (Respondents.Count == 5)
+                                        {
+                                            _ToastService.ShowWarning(infoMessage);
+                                        }
+                                    }
+                                </div>
+                                <div class="mt-2">
+                                    <table class="col-12">
+                                        <thead>
+                                            <tr>
+                                                <th></th>
+                                                <th> </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var respondent in Respondents)
+                                            {
+                                                <tr class="d-flex justify-content-between">
+                                                    <td>
+                                                        @respondent.Email
+                                                    </td>
+                                                    <td class="d-flex justify-content-end">
+                                                        <SfButton OnClick="(()=>RemoveRespondent(respondent.Email))" CssClass="e-danger e-small"><i class="fa-solid fa-trash"></i></SfButton>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </SfCard>
+                        <div class="mt-2">
+                            @if (isAuthenticated)
+                            {
+                                <SfCard>
+                                    <CardHeader>
+                                        Survey Link
+                                    </CardHeader>
+                                    <CardContent>
+                                        <SfTextBox Placeholder='@surveyLink' Multiline Readonly=true></SfTextBox>
+                                         <SfButton OnClick="CopyTextToClipboard" CssClass="e-small e-block e-primary mt-2">Copy to Clipboard</SfButton>
+                                     </CardContent>
+                                 </SfCard>
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Content>
+    </Syncfusion.Blazor.Popups.DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Discard" OnClick="@DiscardSurvey" />
+        <DialogButton Content="Save Survey" IsPrimary="true" OnClick="@SaveSurvey" />
+    </DialogButtons>
+</Syncfusion.Blazor.Popups.SfDialog>
+
+<Syncfusion.Blazor.Popups.SfDialog IsModal=true ShowCloseIcon @bind-Visible=@showSurveyLink Height="auto" Width="auto">
+     <Syncfusion.Blazor.Popups.DialogTemplates>
+         <Header>
+             <span>Survey Link</span>
+         </Header>
+         <Content>
+             <SfCard>
+                 <CardHeader>
+                     Survey Link
+                 </CardHeader>
+                 <CardContent>
+                     <SfTextBox Placeholder='@surveyLink' Multiline Readonly=true></SfTextBox>
+                     <SfButton OnClick="CopyTextToClipboard" CssClass="e-small e-block e-primary mt-2">Copy to Clipboard</SfButton>
+                 </CardContent>
+             </SfCard>
+         </Content>
+     </Syncfusion.Blazor.Popups.DialogTemplates>
+ </Syncfusion.Blazor.Popups.SfDialog>
+
+
+
+ @code {
+    [Inject]
+    public ISurveyService _SurveyService { get; set; }
+    [Inject]
+    public IClipboard _Clipboard { get; set; }
+    [Inject]
+    AuthenticationStateProvider _AuthenticationStateProvider { get; set; }
+    [CascadingParameter]
+    public IToastService _ToastService { get; set; }
+
+    private Survey NewSurvey;
+    private SurveyDetail NewSurveyDetail;
+    private List<Question> Questions;
+    private List<Respondent> Respondents;
+    private List<Question> QuestionPool;
+    private List<Question> RemovedQuestionPool;
+    private string respondentEmail;
+    private bool showSurveyDialog = false;
+    private bool showSurveyLink = false;
+    private bool isAuthenticated;
+
+    private bool isHint;
+    private string infoMessage = "Unauthenticated users are limited to 4 questions and can invite a maximum of 5 people. To enjoy full features, please register";
+    private string surveyLink;
+    private Guid qId = Guid.NewGuid();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (QuestionPool is null || QuestionPool.Count == 0)
+            // questionPool = await service.GetRandomQuestions();
+            QuestionPool = new List<Question>();
+        if (NewSurvey is null)
+            NewSurvey = new Survey();
+        if (NewSurveyDetail is null)
+            NewSurveyDetail = new SurveyDetail { };
+        if (Respondents is null)
+            Respondents = new List<Respondent>();
+        if (Questions is null)
+            Questions = new List<Question> { new Question { Order = 1, QuestionOptions = new List<QuestionOption> { new QuestionOption { }, new QuestionOption { } } } };
+
+        surveyLink = "http://localhost:5243/TakeSurvey&Id=" + DateTime.Now.Ticks.ToString();
+        QuestionPool = GetDummyQuestions();
+
+        var authState = await _AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        isAuthenticated = user.Identity.IsAuthenticated;
+    }
+
+    private void AddQuestion()
+    {
+        int questionOrderCounter = 1;
+        if (!isAuthenticated && Questions.Count != 4)
+        {
+            var order = ++questionOrderCounter;
+            Questions.Add(new Question { QuestionId = Guid.NewGuid(), Order = order, QuestionOptions = new List<QuestionOption> { new QuestionOption { }, new QuestionOption { } } });
+        }
+        else if (isAuthenticated && Questions.Count != 10)
+        {
+            var order = ++questionOrderCounter;
+            Questions.Add(new Question { QuestionId = Guid.NewGuid(), Order = order, QuestionOptions = new List<QuestionOption> { new QuestionOption { }, new QuestionOption { } } });
+        }
+        UpdateQuestionOrders();
+    }
+
+    private void RemoveQuestion(Guid qId)
+    {
+        var question = Questions.Where(e1 => e1.QuestionId == qId).First();
+        if (question != null && Questions.Count > 1)
+        {
+            Questions.Remove(question);
+        }
+        UpdateQuestionOrders();
+    }
+
+    private void MoveArg(Question question, int moveDirection)
+    {
+        var args = new List<Question>(Questions.OrderBy(e1 => e1.Order));
+        switch (moveDirection)
+        {
+            case int.MinValue:
+                {
+                    args.Remove(question);
+                    args.Insert(0, question);
+                }
+                break;
+            case -1:
+                {
+                    var oldIndex = args.IndexOf(question);
+                    if (oldIndex == 0) return;
+                    args.Remove(question);
+                    args.Insert(--oldIndex, question);
+                }
+                break;
+            case 1:
+                {
+                    var oldIndex = args.IndexOf(question);
+                    if (oldIndex == args.Count - 1) return;
+                    args.Remove(question);
+                    args.Insert(++oldIndex, question);
+                }
+                break;
+            case int.MaxValue:
+                {
+                    args.Remove(question);
+                    args.Add(question);
+                }
+                break;
+        }
+        moveDirection = 1;
+        foreach (var item in args)
+        {
+            Questions.First(e1 => e1 == item).Order = moveDirection++;
+        }
+    }
+
+    private void CorrectOptionSelected(Microsoft.AspNetCore.Components.ChangeEventArgs args)
+    {
+        var correctOptionId = args.Value.ToString();
+        var question = Questions.Where(e1 => e1.QuestionOptions.Any(e2 => e2.QuestionOptionId.ToString() == correctOptionId)).FirstOrDefault();
+        foreach (var item in question.QuestionOptions)
+        {
+            item.IsCorrectOption = false;
+        }
+        foreach (var item in question.QuestionOptions)
+        {
+            if (item.QuestionOptionId.ToString() == correctOptionId)
+                item.IsCorrectOption = true;
+        }
+    }
+
+    private void AddQuestionOption(Question question)
+    {
+        if (question is not null && question.QuestionOptions.Count != 5)
+        {
+            question.QuestionOptions.Add(new QuestionOption { QuestionId = question.QuestionId });
+        }
+    }
+
+    private void RemoveQuestionOption(Question question, Guid questionOptionId)
+    {
+        var questionOption = question.QuestionOptions.Where(e1 => e1.QuestionOptionId == questionOptionId).First();
+        if (questionOption is not null)
+            question.QuestionOptions.Remove(questionOption);
+        if (question.QuestionOptions.Count == 1)
+            question.QuestionOptions.Add(new QuestionOption());
+    }
+
+    private void ValueChangeHandler(ChangedEventArgs args)
+    {
+        if (!string.IsNullOrEmpty(args.Value))
+            respondentEmail = args.Value;
+    }
+
+    private void AddRespondent()
+    {
+        if (!isAuthenticated && !string.IsNullOrEmpty(respondentEmail))
+        {
+            if (IsValidEmail(respondentEmail) && Respondents.Count != 5)
+            {
+                if (!Respondents.Any(e1 => e1.Email == respondentEmail))
+                    Respondents.Add(new Respondent { Email = respondentEmail, SurveyId = NewSurvey.SurveyId });
+                else
+                    _ToastService.ShowError("Email adress already exists in the maillist");
+                respondentEmail = null;
+            }
+            else
+            {
+                _ToastService.ShowError("Please provide a valid email address");
+            }
+        }
+        else if (isAuthenticated && !string.IsNullOrEmpty(respondentEmail))
+        {
+            if (IsValidEmail(respondentEmail))
+            {
+                if (!Respondents.Any(e1 => e1.Email == respondentEmail))
+                    Respondents.Add(new Respondent { Email = respondentEmail, SurveyId = NewSurvey.SurveyId });
+                else
+                    _ToastService.ShowError("Email adress already exists in the maillist");
+                respondentEmail = null;
+            }
+            else
+            {
+                _ToastService.ShowError("Please provide a valid email address");
+            }
+        }
+        else
+            _ToastService.ShowError("Please provide a valid email address");
+    }
+
+    private void RemoveRespondent(string respondentEmail)
+    {
+        if (Respondents is not null && Respondents.Count > 0 && Respondents.Any(e1 => e1.Email == respondentEmail))
+            Respondents.RemoveAll(e1 => e1.Email == respondentEmail);
+    }
+
+    private async Task SaveSurvey()
+    {
+        bool CheckCorrectOptions()
+        {
+            return Questions.All(question => question.QuestionOptions.Any(option => option.IsCorrectOption));
+        }
+        if (Questions.Any(e1 => string.IsNullOrEmpty(e1.QuestionText)))
+        {
+            _ToastService.ShowError("Please select a question.");
+        }
+        else if (Questions.Any(e1 => e1.QuestionOptions.Any(e2 => string.IsNullOrEmpty(e2.OptionText))))
+        {
+            _ToastService.ShowError("Please fill options or remove unused options.");
+        }
+        else if (string.IsNullOrEmpty(NewSurveyDetail.Owner) || string.IsNullOrEmpty(NewSurveyDetail.Title))
+        {
+            _ToastService.ShowError("Your email adress and Survey Title fields are required.");
+        }
+        else if (isAuthenticated == false && (Respondents.Count == 0 || Respondents == null))
+        {
+            _ToastService.ShowError("Please add at least one respondent.");
+        }
+        else if (!CheckCorrectOptions())
+        {
+            _ToastService.ShowError("Please check your correct options.");
+        }
+        else if (!IsValidEmail(NewSurveyDetail.Owner))
+        {
+            _ToastService.ShowError("Please check your email.");
+        }
+        else
+        {
+            NewSurvey.SurveyId = Guid.NewGuid();
+            NewSurvey.IsActive = true;
+            NewSurvey.Link = surveyLink;
+            NewSurvey.Owner = NewSurveyDetail.Owner;
+            NewSurvey.Respondents = Respondents;
+            NewSurvey.SurveyDetailId = NewSurveyDetail.SurveyDetailId;
+            foreach (var question in Questions)
+            {
+                question.SurveyId = NewSurvey.SurveyId;
+                foreach (var questionOption in question.QuestionOptions)
+                {
+                    questionOption.QuestionId = question.QuestionId;
+                }
+            }
+            foreach (var item in Respondents)
+            {
+                item.SurveyId = NewSurvey.SurveyId;
+            }
+            NewSurveyDetail.SurveyId = NewSurvey.SurveyId;
+            NewSurvey.Questions = Questions;
+            NewSurvey.SurveyDetail = NewSurveyDetail;
+
+            var result = await _SurveyService.PostSurvey(NewSurvey);
+
+            if (result.Success)
+            {
+                showSurveyDialog = false;
+                QuestionPool = new List<Question>();
+                respondentEmail = null;
+                QuestionPool = GetDummyQuestions();
+                NewSurvey = new Survey();
+                NewSurveyDetail = new SurveyDetail { };
+                Respondents = new List<Respondent>();
+                Questions = new List<Question> { new Question { Order = 1, QuestionOptions = new List<QuestionOption> { new QuestionOption { }, new QuestionOption { } } } };
+                UpdateQuestionOrders();
+
+                if (isAuthenticated)
+                {
+                    if(Respondents != null || Respondents.Count > 0)
+                        _ToastService.ShowSuccess("Survey created and sent successfully.");
+                    else
+                        _ToastService.ShowSuccess("Survey created successfully.");
+                    showSurveyLink = true;
+                }
+                else
+                    _ToastService.ShowSuccess("Survey created and sent successfully.");
+            }
+            else
+            {
+                _ToastService.ShowError("Error ocured.");
+            }
+        }
+    }
+
+    private void DiscardSurvey()
+    {
+        showSurveyDialog = false;
+        QuestionPool = new List<Question>();
+        respondentEmail = null;
+        QuestionPool = GetDummyQuestions();
+        NewSurvey = new Survey();
+        NewSurveyDetail = new SurveyDetail { };
+        Respondents = new List<Respondent>();
+        Questions = new List<Question> { new Question { Order = 1, QuestionOptions = new List<QuestionOption> { new QuestionOption { }, new QuestionOption { } } } };
+        UpdateQuestionOrders();
+    }
+
+    private void OpenDialog()
+    {
+        showSurveyDialog = true;
+    }
+
+    public static bool IsValidEmail(string email)
+    {
+        string pattern = @"^(?!\.)(""([^""\r\\]|\\[""\r\\])*""|" + @"([-a-z0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)" + @"@[a-z0-9][\w\.-]*[a-z0-9]\.[a-z][a-z\.]*[a-z]$";
+        var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+        return regex.IsMatch(email);
+    }
+
+    public static List<Question> GetDummyQuestions()
+    {
+        List<Question> questions = new List<Question>();
+
+        Question question1 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What is my name?",
+            };
+        Question question2 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What is my age?",
+            };
+        Question question3 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What is my favorite color?",
+            };
+        Question question4 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What my favorite food?",
+            };
+        Question question5 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What my favorite movie?",
+            };
+        Question question6 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "Where is my dream travel destination?",
+            };
+        Question question7 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What is my favorite hobby?",
+            };
+        Question question8 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What is my favorite animal?",
+            };
+        Question question9 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What is my favorite season?",
+            };
+        Question question10 = new Question()
+            {
+                QuestionId = Guid.NewGuid(),
+                QuestionText = "What is my favorite sport?",
+            };
+
+        questions.Add(question1);
+        questions.Add(question2);
+        questions.Add(question3);
+        questions.Add(question4);
+        questions.Add(question5);
+        questions.Add(question6);
+        questions.Add(question7);
+        questions.Add(question8);
+        questions.Add(question9);
+        questions.Add(question10);
+
+        return questions;
+    }
+
+    private void UpdateQuestionOrders()
+    {
+        for (int i = 0; i < Questions.Count; i++)
+        {
+            Questions[i].Order = i + 1;
+        }
+    }
+
+    private Task CopyTextToClipboard()
+    {
+        _ToastService.ShowInfo("Copied.");
+        return _Clipboard.SetTextAsync(surveyLink);
+    }
+
+}
+
+

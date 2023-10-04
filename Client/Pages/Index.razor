@@ -1,9 +1,59 @@
 ﻿@page "/"
 
-<PageTitle>Index</PageTitle>
+<div class="container">
+    <div class="p-5">
+        <hr class="" />
+    </div>
+    <section class="">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="hero-content">
+                    <h1 style="font-size:75px">
+                        Get insights quickly, with Survey Pulse
+                    </h1>
+                    <div class="mt-3">
+                        <p class="hero-description">
+                            Easily create and share online forms and surveys, and analyze responses in real-time.
+                        </p>
+                    </div>
+                    <div class="mt-3">
+                        <SurveyWrapper></SurveyWrapper>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div aria-label="Feedback survey animation" role="img" alt="Feedback survey animation">
+                    <div aria-hidden="true">
+                        <div>
+                            <div class="content">
+                                <img alt="" class="results f2" src="https://lh3.googleusercontent.com/fAQAzXOc_vdu9y9UjXqvGqWbaL0bdJq1CCxljUModhJUA0trlXlHs8gMiOZwcDM_g94h1w9rjIz6YKJqTqpQKmWydv5nNohvkd-x_EkkPbJCzbgtDSQ=s0" width="100%">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="p-5">
+        <hr class="" />
+    </div>
+</div>
 
-<h1>Hello, world!</h1>
+<style>
+    .blazored-toast-container {
+        z-index: 9999 !important;
+    }
 
-Welcome to your new app.
+    .dropdown-menu[data-bs-popper] {
+        left: -200px;
+    }
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+    .dropdown-menu {
+        background: #A68ECF;
+        opacity: 1;
+        border-radius: 10px;
+    }
+</style>
+
+
+

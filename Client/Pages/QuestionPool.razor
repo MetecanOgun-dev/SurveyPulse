@@ -1,0 +1,13 @@
+﻿@page "/questionPool"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<Syncfusion.Blazor.Cards.SfCard CssClass="container mt-3">
+    <SfGrid DataSource="@Questions" AllowPaging="true" AllowFiltering="true">
+        <GridPageSettings PageSize="5"></GridPageSettings>
+        <GridColumns>
+            <GridColumn Field="@nameof(SurveyPulse.Shared.Question.QuestionId)" HeaderText="ID" Width="50"></GridColumn>
+            <GridColumn Field="@nameof(SurveyPulse.Shared.Question.QuestionText)" HeaderText="Question Text"></GridColumn>
+        </GridColumns>
+    </SfGrid>
+</Syncfusion.Blazor.Cards.SfCard>

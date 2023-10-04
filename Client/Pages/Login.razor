@@ -1,0 +1,47 @@
+﻿@page "/Login"
+
+<div class="container pt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <img alt="Login Survey Pulse" class="results f2" src="https://lh3.googleusercontent.com/2rCFgkURXqqG-mVfgBK6xsTuLa7mzW16llzimAl2uGBkJz0ZgPttQ7JWaHF8i93jD2fpmowLdal6LaNLuLhHTRkPbNfp4K0iCC-RkGywoSzUJvKlk5w=w0-l80-sg-rj-c0xffffff" width="100%">
+        </div>
+        <div class="col-md-6">
+            <div class="card mt-3 mb-3">
+                <div class="card-header">
+                    <h2>Login</h2>
+                </div>
+                <div class="card-body">
+                    @if (isLoginSuccess)
+                    {
+                        <div class="alert alert-success" role="alert">Login successful. Redirecting...</div>
+                    }
+                    @if (ShowErrors)
+                    {
+                        foreach (var error in Errors!)
+                        {
+                            <div class="alert alert-danger" role="alert"><p>@error</p></div>
+                        }
+                    }
+                    <EditForm Model="@loginModel" OnSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+
+                        <div class="form-group mt-2">
+                            <label for="Username">Username:</label>
+                            <SfTextBox ID="username" @bind-Value="loginModel.Username"></SfTextBox>
+                            <ValidationMessage For="@(() => loginModel.Username)"></ValidationMessage>
+                        </div>
+                        <div class="form-group mt-2">
+                            <label for="Password">Password:</label>
+                            <SfTextBox Type="InputType.Password" ID="password" @bind-Value="loginModel.Password"></SfTextBox>
+                            <ValidationMessage For="@(() => loginModel.Password)"></ValidationMessage>
+                        </div>
+
+                        <div class="form-group mt-2" align="right">
+                            <SfButton Disabled="(!context.Validate())" CssClass="e-primary">Submit</SfButton>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

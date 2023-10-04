@@ -1,0 +1,8 @@
+-PredefinedQuestions (model etc...)
+-SendMessage htmllerini duzenle
+
+-- removeDTOS 2023 09 29
+-- APP.razor check
+--removecors if not used
+--Check all pages about identity (organize unnecessary things)
+--check MoveArgs()
