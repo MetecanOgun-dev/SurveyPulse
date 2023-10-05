@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /Server/appsettings.json
 /SurveyPulse.MigrationsDevelopement/SurveyPulse.MigrationsDevelopement.csproj
+
+appsettings.json
